@@ -1,0 +1,7 @@
+/node_modules/*
+/coverage/*
+/dist/*
+.*
+!.gitignore
+!.travis.yml
+!/dist/index.bundle.js
