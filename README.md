@@ -2,7 +2,7 @@
 
 > **vitrarius:** a glassblower; one who works with glass
 
- Optics are a utility pattern used to facilitate manipulations and interpretations of nested data. Optics hail mostly from functional languages which make heavy use of immutable data structures, so they are naturally well defined and declarative. There are several formal implementations of optics in JavaScript already. In fact, if you are interested in optics from an academic perspective, I recommend checking them out [here](https://www.npmjs/package/partial.lenses). 
+ Optics are a utility pattern used to facilitate manipulations and interpretations of nested data. Optics hail mostly from functional languages which make heavy use of immutable data structures, so they are naturally well defined and declarative. There are several formal implementations of optics in JavaScript already. In fact, if you are interested in optics from an academic perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). 
  
  Vitrarius, on the other hand, is an optics library implemented by a mad scientist to solve an engineering problem; it's a bit uncouth, but also wicked powerful. Vitrarius exploits the freedoms of JavaScript to generalize optics for side effects, mutations, plurality, recursion, and arbitrary combinations thereof. Its name was chosen to reflect the library's less controlled (though perhaps more organic?) approach to optics in JavaScript. Vitrarius is __not__ intended to __replace__ more formal implementations, but rather to provide an alternative.
 
@@ -85,4 +85,4 @@ Compose is just one way of building up optics. Vitrarius also has chain, optic, 
 
 ### **Advanced**
 ----------------
-Examples coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs/package/silhouette-store).
+Examples coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette-store).
