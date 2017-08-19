@@ -1,7 +1,6 @@
 var webpack = require('webpack');
 var extend = require('./webpack.base');
 var shell = require('shelljs');
-var package = require('./../package.json');
 
 ////////////////////////////////////////////////////////////////////////
 //====================================================================//
@@ -16,12 +15,7 @@ let config = extend({
         filename: 'test.bundle.js',
         libraryTarget: 'umd',
     },
-    externals: Object.keys(package.dependencies).reduce((a, d) => {
-        // adds all runtime dependencies to the exclude list for testing
-        // in a node environment for accurate code coverage reporting.
-        a[d] = d;
-        return a;
-    }, { tap: 'tap' }),
+    externals: { tap: 'tap' },
     plugins: [
         new webpack.LoaderOptionsPlugin({
             minimize: true,
