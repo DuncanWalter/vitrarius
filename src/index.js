@@ -1,28 +1,28 @@
 
-const __exec__ = Symbol('exec');
-
 class Optic {
     constructor(fun){
-        this[__exec__] = fun;
+        this.exec = fun;
     }
 }
 
 // view is used to activate optics
 export let view = (optic, target) => {
     if(optic instanceof Optic){
-        return optic[__exec__](target);
+        return optic.exec(target);
     } else {
-        return compose(optic)[__exec__](target);
+        return compose(optic).exec(target);
     }
 }
 
+// if an optic will be provably safe, then it will be created by the
+// trusted pseudo-constructor to maximize performance.
 function trusted(operation){
     return new Optic((target, itr) => {
         let { done, value } = itr ? itr.next() : { done: true };
         if(done){
             return operation(target, id => id);
         } else {
-            return operation(target, target => value[__exec__](target, itr));
+            return operation(target, target => value.exec(target, itr));
         }
     });
 }
@@ -39,7 +39,7 @@ export function optic(operation){
             let safe = true;
             let next = target => {
                 if(safe){ safe = false } else { throw `The 'next' function was called twice; for library performance, optics calling 'next' more than once must be created with 'traversal' in place of 'optic'` }
-                return value[__exec__](target, itr);
+                return value.exec(target, itr);
             }
             let ret = operation(target, next);
             if(itr.return){ itr.return(); }
@@ -87,7 +87,7 @@ export function compose(...optics){
     itr.next();
 
     return new Optic((target, i) => {
-        let ret = lst[0][__exec__](target, (function*(){
+        let ret = lst[0].exec(target, (function*(){
             yield* itr;
             if(i !== undefined){ yield* i; }
         })());
@@ -175,7 +175,7 @@ export function traversal(operation){
             let next = target => {
                 let itr = lst[Symbol.iterator]();
                 let { done, value } = itr.next();
-                let ret = done ? target : value[__exec__](target, itr);
+                let ret = done ? target : value.exec(target, itr);
                 if(itr.return){ itr.return(); }
                 return ret;
             }
