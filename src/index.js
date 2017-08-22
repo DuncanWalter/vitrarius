@@ -5,6 +5,8 @@ class Optic {
     }
 }
 
+const id = id => id;
+
 // view is used to activate optics
 export let view = (optic, target) => {
     if(optic instanceof Optic){
@@ -20,7 +22,7 @@ function trusted(operation){
     return new Optic((target, itr) => {
         let { done, value } = itr ? itr.next() : { done: true };
         if(done){
-            return operation(target, id => id);
+            return operation(target, id);
         } else {
             return operation(target, target => value.exec(target, itr));
         }
@@ -34,7 +36,7 @@ export function optic(operation){
     return new Optic((target, itr) => {
         let { done, value } = itr ? itr.next() : { done: true };
         if(done){
-            return operation(target, id => id);
+            return operation(target, id);
         } else {
             let safe = true;
             let next = target => {
@@ -209,3 +211,42 @@ export let each = () => {
         }
     });
 }
+
+let join = pattern => {
+    let index = -1;
+    let input, output, result = {};
+    let keys = Object.keys(pattern);
+    return trusted((target, next) => {
+
+        if(index < 0){ 
+            input = target;
+            index += 1;
+        } else if(index < keys.length){
+            input[keys[index++]] = target;
+        }
+
+        if(index < keys.length){
+            result[keys[index]] = next(input[keys[index]]);
+        } else {
+            output = next(input);
+        }
+
+        // console.log(output);
+
+        return --index < 0 ? result : output[keys[index]];
+
+    });
+}
+
+export let parallelize = pattern => {
+    return new Optic((target, itr) => {
+        let keys = Object.keys(pattern);
+        let joiner = join(pattern);
+        let r = compose(joiner, keys.map(k => [pattern[k], joiner])).exec(target, itr);
+        return Object.keys(r).concat(keys).reduce((a, k) => {
+            return r[k] === a[k] ? a : r;
+        }, target);
+    });
+}
+
+

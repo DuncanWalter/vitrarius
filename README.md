@@ -2,11 +2,11 @@
 
 > **vitrarius:** a glassblower; one who works with glass
 
- Optics are a utility pattern used to facilitate manipulations and interpretations of nested data. Optics hail mostly from functional languages which make heavy use of immutable data structures, so they are naturally well defined and declarative. There are several formal implementations of optics in JavaScript already. In fact, if you are interested in optics from an academic perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). 
+ Vitrarius is a raw optics library designed to handle and exploit the quirks of JavaScript. Optics are a utility pattern used to facilitate manipulations and interpretations of nested data. They hail mostly from functional languages which make heavy use of immutable data structures, so they are well defined and declarative. There are several formal implementations of optics in JavaScript already. In fact, if you are interested in optics from an academic perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). 
  
- Vitrarius, on the other hand, is an optics library implemented by a mad scientist to solve an engineering problem; it's a bit uncouth, but also wicked powerful. Vitrarius exploits the freedoms of JavaScript to generalize optics for side effects, mutations, plurality, recursion, and arbitrary combinations thereof. Its name was chosen to reflect the library's less controlled (though perhaps more organic?) approach to optics in JavaScript. Vitrarius is __not__ intended to __replace__ more formal implementations, but rather to provide an alternative.
+ Vitrarius, on the other hand, is an optics library implemented by a mad scientist to solve an engineering problem; it's a bit uncouth, but also wicked powerful. Vitrarius generalizes optics for side effects, mutations, plurality, recursion, and arbitrary combinations thereof. Its name was chosen to reflect the library's less strict, more constructive approach to optics in JavaScript. Vitrarius is __not__ intended to _replace_ more formal implementations, but rather to provide a utilitarian alternative. While its API is light, vitrarius bears all the conceptual weight of optics; it takes effort to master.
 
-### **Introduction**
+### **Fundamental Usage**
 --------------------
 
 Vitrarius is a single module exporting several pure functions. It is designed for use with es2015 language features, so examples will use es2015 syntax.
@@ -36,10 +36,6 @@ console.log(person);
 Some things worth noting:
 
 ``` javascript
-// optics appear to have no properties
-console.log(exampleOptic);
-/* > Optic { } */
-
 // default optics treat objects as immutables
 console.log(object);
 /* > { } */
@@ -48,7 +44,7 @@ console.log(object);
 console.log(person === object);
 /* > false */
 
-// even if there were no effective changes
+// though unchanged objects are preserved
 console.log(person === view(exampleOptic, person));
 /* > true */
 ```
@@ -80,9 +76,11 @@ view(printName, nestedPerson);
 /* > 'Haskell' */
 ```
 
-Compose is just one way of building up optics. Vitrarius also has chain, optic, lens, and traversal functions for creating more nuanced optics.
+There are more optic-crafting functions in Vitrarius, some of which are discussed below.
 
-
-### **Advanced**
+### **Advanced Features**
 ----------------
-Examples coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette-store).
+Vitrarius also has chain, parallelize, optic, lens, and traversal functions for crafting specialized tools. So far, the most powerful features of vitrarius are probably the parallelize and traversal functions. Parallelize allows lenses to be used in parallel on properties of an object in a naturally composable manner. This greatly simplifies specifying side effects or using a mediator inside optics. Traversal creates a custom optic which can operate on multiple targets. These shine when working with arrays or recursion. These two functions, along with compose, represent most of the complexity behind vitrarius.
+
+Examples coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette).
+
