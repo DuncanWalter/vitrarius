@@ -1,4 +1,13 @@
 
+
+// TODO make an LL scanner (two linked lists in opposite directions) class to replace iterators.
+// TODO make lenses into classless generators
+// TODO implement a lens housing which handles 'generalized' recursion
+
+
+
+
+
 class Optic {
     constructor(fun){
         this.exec = fun;
@@ -190,21 +199,21 @@ export function traversal(operation){
 export let each = () => {
     return traversal((target, next) => {
         let r;
-        if(target instanceof Object){
-            r = Object.keys(target).reduce((a, k) => {
-                a[k] = next(target[k]);
-                return a;
-            }, {});
-            return Object.keys(r).reduce((a, k) => {
-                return r[k] === a[k] ? a : r;
-            }, target);
-        } else if(target instanceof Array){
+        if(target instanceof Array){
             r = target.reduce((a, e, i) => {
                 a[i] = next(e);
                 return a;
             }, []);
             return r.reduce((a, e, i) => {
                 return e === a[i] ? a : r;
+            }, target);
+        } else if(target instanceof Object){
+            r = Object.keys(target).reduce((a, k) => {
+                a[k] = next(target[k]);
+                return a;
+            }, {});
+            return Object.keys(r).reduce((a, k) => {
+                return r[k] === a[k] ? a : r;
             }, target);
         } else {
             return target;

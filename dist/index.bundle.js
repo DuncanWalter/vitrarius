@@ -1,1 +1,264 @@
-!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.vitrarius=t():e.vitrarius=t()}(this,function(){return(e=>{function t(n){if(r[n])return r[n].exports;var o=r[n]={i:n,l:!1,exports:{}};return e[n].call(o.exports,o,o.exports,t),o.l=!0,o.exports}var r={};return t.m=e,t.c=r,t.d=((e,r,n)=>{t.o(e,r)||Object.defineProperty(e,r,{configurable:!1,enumerable:!0,get:n})}),t.n=(e=>{var r=e&&e.__esModule?function(){return e.default}:function(){return e};return t.d(r,"a",r),r}),t.o=((e,t)=>Object.prototype.hasOwnProperty.call(e,t)),t.p="",t(t.s=0)})([function(e,t,r){"use strict";function n(e){return new a((t,r)=>{let{done:n,value:o}=r?r.next():{done:!0};return n?e(t,e=>e):e(t,e=>o[l](e,r))})}function o(e){return new a((t,r)=>{let{done:n,value:o}=r?r.next():{done:!0};if(n)return e(t,e=>e);{let n=!0,u=e(t,e=>{if(!n)throw`The 'next' function was called twice; for library performance, optics calling 'next' more than once must be created with 'traversal' in place of 'optic'`;return n=!1,o[l](e,r)});return r.return&&r.return(),u}})}function u(e,t){return n((r,n)=>t(r,n(e(r))),!1)}function i(e){return e.map(e=>"string"==typeof e||"number"==typeof e?p(e):e instanceof Array?c(...e):e instanceof Function?n((t,r)=>r(e(t))):e)}function c(...e){let t=i(e),r=t[Symbol.iterator]();return r.next(),new a((e,n)=>{let o=t[0][l](e,function*(){yield*r,void 0!==n&&(yield*n)}());return r.return&&r.return(),o})}function s(e){return new a((t,r)=>{let{done:n,value:o}=r?r.next():{done:!0};if(n)return e(t,e=>e);{let u=[];for(;!n;)u.push(o),({done:n,value:o}=r.next());return e(t,e=>{let t=u[Symbol.iterator](),{done:r,value:n}=t.next(),o=r?e:n[l](e,t);return t.return&&t.return(),o})}})}Object.defineProperty(t,"__esModule",{value:!0}),t.optic=o,t.lens=u,t.compose=c,t.chain=function(...e){return n((t,r)=>r(i(e).reduce((e,t)=>f(t,e),t)),!1)},t.traversal=s;const l=Symbol("exec");class a{constructor(e){this[l]=e}}let f=t.view=((e,t)=>e instanceof a?e[l](t):c(e)[l](t)),p=t.pluck=(e=>u(t=>t[e],(t,r)=>{if(t[e]===r)return t;{let n=t instanceof Array?t.map(e=>e):Object.assign({},t);if("number"==typeof e&&!t instanceof Array)throw new Error("The 'pluck' lens will not assign numeric member keys to non-Arrays");if("string"==typeof e&&!t instanceof Object)throw new Error("The 'pluck' lens will not assign string member keys to non-Objects");return n[e]=r,n}}));t.inject=((e,t)=>u(e=>e,(r,n)=>{if(t===n[e])return r;{let r=Object.assign({},n);return r[e]=t,r}})),t.remove=(e=>u(e=>e,(t,r)=>{if(!e in r)return r;{let t=Object.assign({},r);return delete t[e],t}})),t.where=(e=>o((t,r)=>e(t)?r(t):t)),t.each=(()=>s((e,t)=>{let r;return e instanceof Object?(r=Object.keys(e).reduce((r,n)=>(r[n]=t(e[n]),r),{}),Object.keys(r).reduce((e,t)=>r[t]===e[t]?e:r,e)):e instanceof Array?(r=e.reduce((e,r,n)=>(e[n]=t(r),e),[])).reduce((e,t,n)=>t===e[n]?e:r,e):e}))}])});
+(function webpackUniversalModuleDefinition(root, factory) {
+    if (typeof exports === "object" && typeof module === "object") module.exports = factory(); else if (typeof define === "function" && define.amd) define([], factory); else if (typeof exports === "object") exports["vitrarius"] = factory(); else root["vitrarius"] = factory();
+})(this, function() {
+    return function(modules) {
+        var installedModules = {};
+        function __webpack_require__(moduleId) {
+            if (installedModules[moduleId]) {
+                return installedModules[moduleId].exports;
+            }
+            var module = installedModules[moduleId] = {
+                i: moduleId,
+                l: false,
+                exports: {}
+            };
+            modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+            module.l = true;
+            return module.exports;
+        }
+        __webpack_require__.m = modules;
+        __webpack_require__.c = installedModules;
+        __webpack_require__.d = function(exports, name, getter) {
+            if (!__webpack_require__.o(exports, name)) {
+                Object.defineProperty(exports, name, {
+                    configurable: false,
+                    enumerable: true,
+                    get: getter
+                });
+            }
+        };
+        __webpack_require__.n = function(module) {
+            var getter = module && module.__esModule ? function getDefault() {
+                return module["default"];
+            } : function getModuleExports() {
+                return module;
+            };
+            __webpack_require__.d(getter, "a", getter);
+            return getter;
+        };
+        __webpack_require__.o = function(object, property) {
+            return Object.prototype.hasOwnProperty.call(object, property);
+        };
+        __webpack_require__.p = "";
+        return __webpack_require__(__webpack_require__.s = 0);
+    }([ function(module, exports, __webpack_require__) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", {
+            value: true
+        });
+        exports.optic = optic;
+        exports.lens = lens;
+        exports.compose = compose;
+        exports.chain = chain;
+        exports.traversal = traversal;
+        class Optic {
+            constructor(fun) {
+                this.exec = fun;
+            }
+        }
+        const id = id => id;
+        let view = exports.view = ((optic, target) => {
+            if (optic instanceof Optic) {
+                return optic.exec(target);
+            } else {
+                return compose(optic).exec(target);
+            }
+        });
+        function trusted(operation) {
+            return new Optic((target, itr) => {
+                let {done: done, value: value} = itr ? itr.next() : {
+                    done: true
+                };
+                if (done) {
+                    return operation(target, id);
+                } else {
+                    return operation(target, target => value.exec(target, itr));
+                }
+            });
+        }
+        function optic(operation) {
+            return new Optic((target, itr) => {
+                let {done: done, value: value} = itr ? itr.next() : {
+                    done: true
+                };
+                if (done) {
+                    return operation(target, id);
+                } else {
+                    let safe = true;
+                    let next = target => {
+                        if (safe) {
+                            safe = false;
+                        } else {
+                            throw `The 'next' function was called twice; for library performance, optics calling 'next' more than once must be created with 'traversal' in place of 'optic'`;
+                        }
+                        return value.exec(target, itr);
+                    };
+                    let ret = operation(target, next);
+                    if (itr.return) {
+                        itr.return();
+                    }
+                    return ret;
+                }
+            });
+        }
+        function lens(distort, correct) {
+            return trusted((o, n) => correct(o, n(distort(o))), false);
+        }
+        function compile(optics) {
+            return optics.map(l => {
+                if (typeof l === "string" || typeof l === "number") {
+                    return pluck(l);
+                } else if (l instanceof Array) {
+                    return compose(...l);
+                } else if (l instanceof Function) {
+                    return trusted((target, next) => {
+                        return next(l(target));
+                    });
+                } else {
+                    return l;
+                }
+            });
+        }
+        function compose(...optics) {
+            let lst = compile(optics);
+            let itr = lst[Symbol.iterator]();
+            itr.next();
+            return new Optic((target, i) => {
+                let ret = lst[0].exec(target, function*() {
+                    yield* itr;
+                    if (i !== undefined) {
+                        yield* i;
+                    }
+                }());
+                if (itr.return) {
+                    itr.return();
+                }
+                return ret;
+            });
+        }
+        function chain(...optics) {
+            return trusted((target, next) => {
+                return next(compile(optics).reduce((acc, optic) => {
+                    return view(optic, acc);
+                }, target));
+            }, false);
+        }
+        let pluck = exports.pluck = (mem => lens(obj => obj[mem], (obj, val) => {
+            if (obj[mem] === val) {
+                return obj;
+            } else {
+                let r = obj instanceof Array ? obj.map(i => i) : Object.assign({}, obj);
+                if (typeof mem === "number" && !obj instanceof Array) {
+                    throw new Error("The 'pluck' lens will not assign numeric member keys to non-Arrays");
+                }
+                if (typeof mem === "string" && !obj instanceof Object) {
+                    throw new Error("The 'pluck' lens will not assign string member keys to non-Objects");
+                }
+                r[mem] = val;
+                return r;
+            }
+        }));
+        let inject = exports.inject = ((prop, val) => lens(target => target, (target, ret) => {
+            if (val === ret[prop]) {
+                return target;
+            } else {
+                let r = Object.assign({}, ret);
+                r[prop] = val;
+                return r;
+            }
+        }));
+        let remove = exports.remove = (prop => lens(obj => obj, (obj, ret) => {
+            if (!prop in ret) {
+                return ret;
+            } else {
+                let r = Object.assign({}, ret);
+                delete r[prop];
+                return r;
+            }
+        }));
+        let where = exports.where = (predicate => {
+            return optic((target, next) => {
+                return predicate(target) ? next(target) : target;
+            }, false);
+        });
+        function traversal(operation) {
+            return new Optic((target, itr) => {
+                let {done: done, value: value} = itr ? itr.next() : {
+                    done: true
+                };
+                if (done) {
+                    return operation(target, id => id);
+                } else {
+                    let lst = [];
+                    while (!done) {
+                        lst.push(value);
+                        ({done: done, value: value} = itr.next());
+                    }
+                    let next = target => {
+                        let itr = lst[Symbol.iterator]();
+                        let {done: done, value: value} = itr.next();
+                        let ret = done ? target : value.exec(target, itr);
+                        if (itr.return) {
+                            itr.return();
+                        }
+                        return ret;
+                    };
+                    return operation(target, next);
+                }
+            });
+        }
+        let each = exports.each = (() => {
+            return traversal((target, next) => {
+                let r;
+                if (target instanceof Object) {
+                    r = Object.keys(target).reduce((a, k) => {
+                        a[k] = next(target[k]);
+                        return a;
+                    }, {});
+                    return Object.keys(r).reduce((a, k) => {
+                        return r[k] === a[k] ? a : r;
+                    }, target);
+                } else if (target instanceof Array) {
+                    r = target.reduce((a, e, i) => {
+                        a[i] = next(e);
+                        return a;
+                    }, []);
+                    return r.reduce((a, e, i) => {
+                        return e === a[i] ? a : r;
+                    }, target);
+                } else {
+                    return target;
+                }
+            });
+        });
+        let join = pattern => {
+            let index = -1;
+            let input, output, result = {};
+            let keys = Object.keys(pattern);
+            return trusted((target, next) => {
+                if (index < 0) {
+                    input = target;
+                    index += 1;
+                } else if (index < keys.length) {
+                    input[keys[index++]] = target;
+                }
+                if (index < keys.length) {
+                    result[keys[index]] = next(input[keys[index]]);
+                } else {
+                    output = next(input);
+                }
+                return --index < 0 ? result : output[keys[index]];
+            });
+        };
+        let parallelize = exports.parallelize = (pattern => {
+            return new Optic((target, itr) => {
+                let keys = Object.keys(pattern);
+                let joiner = join(pattern);
+                let r = compose(joiner, keys.map(k => [ pattern[k], joiner ])).exec(target, itr);
+                return Object.keys(r).concat(keys).reduce((a, k) => {
+                    return r[k] === a[k] ? a : r;
+                }, target);
+            });
+        });
+    } ]);
+});
