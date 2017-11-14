@@ -1,261 +1,326 @@
+import ListZipper from './ListZipper'
+import { __get__, __set__, __clone__, __members__, __remove__ } from './abstraction'
+
+// acquire a public reference to use for type detection
+const GeneratorFunction = (function*(){}).constructor;
+
+// TODO isolate this as a handler factory. Could have factory versions.
+// an independent state container for efficiently
+// catching errors and throwing them back up the
+// chain of lenses
 
 
-// TODO make an LL scanner (two linked lists in opposite directions) class to replace iterators.
-// TODO make lenses into classless generators
-// TODO implement a lens housing which handles 'generalized' recursion
-
-
-
-
-
-class Optic {
-    constructor(fun){
-        this.exec = fun;
-    }
+function submit(...args){
+    handler.next(args);
 }
 
-const id = id => id;
 
-// view is used to activate optics
-export let view = (optic, target) => {
-    if(optic instanceof Optic){
-        return optic.exec(target);
+function HandlerContext(){
+
+    const hg = function*(){
+        let generator, target, result;
+        // while(true){ // TODO either enable error context or remove the handler? Could make this a debug mode?
+        //     try {
+        while(true){
+            ([ generator, target, result ] = yield);
+            Object.assign(result, generator.next(target));
+        }
+        //     } catch(err) {
+        //         done = true;
+        //         value = err;
+        //     }
+        // }
+    };
+
+    let sequence = new ListZipper();
+    sequence.push(hg());
+
+    return {
+        submit(...args){
+            if(!sequence.head.value){ sequence.push(hg()); }
+            let freeHandler = sequence.head.value;
+            sequence.shift();
+            freeHandler.next(args) 
+            sequence.unShift();
+        },
+    };
+};
+
+const context = new HandlerContext();
+
+export let view = optic => target => {
+
+    let sequence = new ListZipper();
+
+    if(optic instanceof GeneratorFunction){
+        sequence.add({ optic, generator: undefined });
     } else {
-        return compose(optic).exec(target);
+        for(let o of optic){
+            sequence.add({ optic: o, generator: undefined });
+        }
     }
-}
 
-// if an optic will be provably safe, then it will be created by the
-// trusted pseudo-constructor to maximize performance.
-function trusted(operation){
-    return new Optic((target, itr) => {
-        let { done, value } = itr ? itr.next() : { done: true };
-        if(done){
-            return operation(target, id);
-        } else {
-            return operation(target, target => value.exec(target, itr));
-        }
-    });
-}
+    let focus = sequence.head.value;
+    focus.generator = focus.optic(target);
 
-// Next :: Object? -> Object?
-// Optic :: { exec :: (Object?, Iterator<Optic>) -> Object? }
-// optic :: ( ( Object, Next ) -> void, false ) ->  Optic
-export function optic(operation){
-    return new Optic((target, itr) => {
-        let { done, value } = itr ? itr.next() : { done: true };
-        if(done){
-            return operation(target, id);
-        } else {
-            let safe = true;
-            let next = target => {
-                if(safe){ safe = false } else { throw `The 'next' function was called twice; for library performance, optics calling 'next' more than once must be created with 'traversal' in place of 'optic'` }
-                return value.exec(target, itr);
+    let result = {
+        value: target,
+        done: false,
+    }
+
+    while(!result.done){
+        context.submit(focus.generator, result.value, result);
+        if(!result.done){
+            focus = sequence.shift();
+            if(focus){
+                focus.generator = focus.optic(result.value);
+            } else {
+                focus = sequence.unShift();
             }
-            let ret = operation(target, next);
-            if(itr.return){ itr.return(); }
-            return ret;
+        } else {
+            focus.generator = undefined;
+            focus = sequence.unShift();
+            result.done = focus === undefined;
         }
-    });
-}
+    }
+    
+    return result.value;
+};
 
-// lens is a functional pseudo-constructor for making custom optics.
-// Lenses are a subset of all optics which select and/or modify a single target
-// without any inverse property. When composed with other optics, a custom
-// lens' distort function provides data to subsequent lenses, while its correct 
-// function provides the final output of the lens.
-//
-// lens :: (Object -> Object, (Object, Object) -> Object) -> Optic
-export function lens(distort, correct){
-    return trusted((o, n) => correct(o, n(distort(o))), false);
-}
-
+// allows for the use of short-hands when constructing
+// complex optics using compose (and eventually sequence)
 function compile(optics){
     return optics.map(l => {
         if(typeof l === 'string' || typeof l === 'number'){
             return pluck(l);
         } else if(l instanceof Array){
             return compose(...l);
-        } else if(l instanceof Function){
-            return trusted((target, next) => {
-                return next(l(target));
-            });
-        } else {
+        } else if(l instanceof GeneratorFunction){
             return l;
-        }
-    });
-}
-
-// compose converts a sequence of optics into a single optic. compose also
-// supports several short-hands: numbers and strings will be converted to
-// pluck lenses while nested arrays will be recursively composed. Most
-// interestingly, functions will be converted into simple optics. This
-// can be used to declaratively define recursive optics.
-export function compose(...optics){
-    let lst = compile(optics);
-
-    let itr = lst[Symbol.iterator]();
-    itr.next();
-
-    return new Optic((target, i) => {
-        let ret = lst[0].exec(target, (function*(){
-            yield* itr;
-            if(i !== undefined){ yield* i; }
-        })());
-        if(itr.return){ itr.return(); }
-        return ret;
-    });
-    
-}
-
-export function chain(...optics){
-    return trusted((target, next) => {
-        return next(compile(optics).reduce((acc, optic) => {
-            return view(optic, acc);
-        }, target));
-    }, false);
-}
-
-// pluck is a functional pseudo-constructor for perhaps the most common lens.
-// pluck accepts either a string or a number to use as a member key. Subsequent lenses
-// will view only the member specified by that key. The pluck lens itself supports
-// efficient immutability, and will not mutate any inputs.
-export let pluck = mem => lens(obj => obj[mem], (obj, val) => {
-    if(obj[mem] === val){
-        return obj;
-    } else {
-        let r = obj instanceof Array ? obj.map(i => i) : Object.assign({}, obj);
-        if(typeof mem === 'number' && !obj instanceof Array){
-            throw new Error("The 'pluck' lens will not assign numeric member keys to non-Arrays");
-        }
-        if(typeof mem === 'string' && !obj instanceof Object){
-            throw new Error("The 'pluck' lens will not assign string member keys to non-Objects");
-        }
-        r[mem] = val;
-        return r;
-    }
-});
-
-// inject is a functional pseudo-constructor for the additive mutation lense.
-// inject accepts either a string or a number to use as a member key and a value to insert. 
-// The inject lens itself supports efficient immutability, and will not mutate any inputs.
-export let inject = (prop, val) => lens(target => target, (target, ret) => {
-    if(val === ret[prop]){
-        return target;
-    } else {
-        // TODO catch array cases
-        let r = Object.assign({}, ret);
-        r[prop] = val;
-        return r;
-    }
-});
-
-// remove is a functional pseudo-constructor for the negative mutation lense.
-// remove accepts either a string or a number to use as a member key. 
-// The remove lens itself supports efficient immutability, and will not mutate any inputs.
-export let remove = prop => lens(obj => obj, (obj, ret) => {
-    if(!prop in ret){
-        return ret;
-    } else {
-        let r = Object.assign({}, ret);
-        delete r[prop];
-        return r;
-    }
-});
-
-// where is a functional pseudo-constructor for optics which act as if blocks.
-// where accepts a predicate function which returns a boolean flag. If the
-// predicate run over an input returns false, no subsequent composed lenses will be used.
-export let where = predicate => {
-    return optic((target, next) => {
-        return predicate(target) ? next(target) : target;
-    }, false);
-}
-
-export function traversal(operation){
-    return new Optic((target, itr) => {
-        let { done, value } = itr ? itr.next() : { done: true };
-        if(done){
-            return operation(target, id => id);
+        } else if(l instanceof Function){
+            return function*(t){ return yield l(t); }
+        } else if(l[Symbol.iterator]){
+            return l;
         } else {
-            let lst = [];
-            while(!done){
-                lst.push(value); 
-                ({ done, value } = itr.next());
+            throw Error('Invalid optic type instance ' + l);
+        }
+    });
+};
+
+
+export let compose = (...optics) => {
+    return {
+        [Symbol.iterator]: function*(){
+            for(let o of compile(optics)){
+                if(o instanceof GeneratorFunction){
+                    yield o;
+                } else if(o[Symbol.iterator]){
+                    yield* o;
+                } else {
+                    throw Error('Invalid optic type instance ' + o);
+                }
             }
-            let next = target => {
-                let itr = lst[Symbol.iterator]();
-                let { done, value } = itr.next();
-                let ret = done ? target : value.exec(target, itr);
-                if(itr.return){ itr.return(); }
-                return ret;
+        } 
+    }
+};
+
+
+export let lens = (i, o) => function*(v){ 
+    return o(yield i(v)); 
+};
+
+
+export let pluck = m => function*(v){ 
+    let mem = __get__(v, m);
+    let ret = yield mem;
+    if(ret === undefined){ console.log('pluck result', ret); };
+    if(ret === mem){
+        return v;
+    } else {
+        let fin = __clone__(v);
+        __set__(fin, m, ret);
+        return fin;
+    }
+};
+
+
+export let inject = (member, fragment) => function*(target){ 
+    let result = yield target;
+    if(result === undefined){ console.log('inject result', result); };
+    if(__get__(result, member) === fragment){
+        return result;
+    } else {
+       if(result === target){
+           result = __clone__(target);
+       }
+       __set__(result, member, fragment);
+       return result;
+    }
+};
+
+
+export let remove = member => function*(target){ 
+    let result = yield target;
+    if(result === undefined){ console.log('remove result', result); };
+    if(__get__(result, member) === undefined){
+        return result;
+    } else {
+        if(result === target){
+            result = __clone__(target);
+        }
+        __remove__(result, member);
+        return result;
+    }
+};
+
+
+export let each = () => function*(target){
+    let acc = target;
+    if(target === undefined){ console.log('each undefined', target);  };
+    for(let m of __members__(target)){
+        let result = __get__(target, m);
+        let fragment = yield result;
+        if(result !== fragment){
+            if(acc === target){
+                acc = __clone__(acc);
             }
-            return operation(target, next);
+            __set__(acc, m, fragment);
         }
-    });
-}
+    };
+    return acc;
+};
 
-// 
-export let each = () => {
-    return traversal((target, next) => {
-        let r;
-        if(target instanceof Array){
-            r = target.reduce((a, e, i) => {
-                a[i] = next(e);
-                return a;
-            }, []);
-            return r.reduce((a, e, i) => {
-                return e === a[i] ? a : r;
-            }, target);
-        } else if(target instanceof Object){
-            r = Object.keys(target).reduce((a, k) => {
-                a[k] = next(target[k]);
-                return a;
-            }, {});
-            return Object.keys(r).reduce((a, k) => {
-                return r[k] === a[k] ? a : r;
-            }, target);
-        } else {
-            return target;
-        }
-    });
-}
 
-let join = pattern => {
-    let index = -1;
-    let input, output, result = {};
-    let keys = Object.keys(pattern);
-    return trusted((target, next) => {
+export let where = predicate => function*(v){
+    return predicate(v) ? yield v : v;
+};
 
-        if(index < 0){ 
-            input = target;
-            index += 1;
-        } else if(index < keys.length){
-            input[keys[index++]] = target;
-        }
 
-        if(index < keys.length){
-            result[keys[index]] = next(input[keys[index]]);
-        } else {
-            output = next(input);
-        }
+export let handle = handler => function*(v){
+    let r = yield v;
+    return r instanceof Error ? handler(r) : r;
+};
 
-        // console.log(output);
 
-        return --index < 0 ? result : output[keys[index]];
-
-    });
-}
-
-export let parallelize = pattern => {
-    return new Optic((target, itr) => {
-        let keys = Object.keys(pattern);
-        let joiner = join(pattern);
-        let r = compose(joiner, keys.map(k => [pattern[k], joiner])).exec(target, itr);
-        return Object.keys(r).concat(keys).reduce((a, k) => {
-            return r[k] === a[k] ? a : r;
-        }, target);
-    });
+// TODO this is hacked in as an afterthought which defeats the logging improvements
+export let chain = (...optics) => function*(v){
+    return compile(optics).reduce((a, o) => view(o)(a), yield v);
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// export let each = () => {
+//     return traversal((target, next) => {
+//         let r;
+//         if(target instanceof Array){
+//             r = target.reduce((a, e, i) => {
+//                 a[i] = next(e);
+//                 return a;
+//             }, []);
+//             return r.reduce((a, e, i) => {
+//                 return e === a[i] ? a : r;
+//             }, target);
+//         } else if(target instanceof Object){
+//             r = Object.keys(target).reduce((a, k) => {
+//                 a[k] = next(target[k]);
+//                 return a;
+//             }, {});
+//             return Object.keys(r).reduce((a, k) => {
+//                 return r[k] === a[k] ? a : r;
+//             }, target);
+//         } else {
+//             return target;
+//         }
+//     });
+// }
+
+// let join = pattern => {
+//     let index = -1;
+//     let input, output, result = {};
+//     let keys = Object.keys(pattern);
+//     return trusted((target, next) => {
+
+//         if(index < 0){ 
+//             input = target;
+//             index += 1;
+//         } else if(index < keys.length){
+//             input[keys[index++]] = target;
+//         }
+
+//         if(index < keys.length){
+//             result[keys[index]] = next(input[keys[index]]);
+//         } else {
+//             output = next(input);
+//         }
+
+//         // console.log(output);
+
+//         return --index < 0 ? result : output[keys[index]];
+
+//     });
+// }
+
+// export let parallelize = pattern => {
+//     return new Optic((target, itr) => {
+//         let keys = Object.keys(pattern);
+//         let joiner = join(pattern);
+//         let r = compose(joiner, keys.map(k => [pattern[k], joiner])).exec(target, itr);
+//         return Object.keys(r).concat(keys).reduce((a, k) => {
+//             return r[k] === a[k] ? a : r;
+//         }, target);
+//     });
+// }
+
+// export function chain(...optics){
+//     return trusted((target, next) => {
+//         return next(compile(optics).reduce((acc, optic) => {
+//             return view(optic, acc);
+//         }, target));
+//     }, false);
+// }

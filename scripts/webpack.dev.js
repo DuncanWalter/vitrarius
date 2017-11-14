@@ -23,7 +23,7 @@ let config = extend({
         a[d] = d;
         return a;
     }, { tap: 'tap' }),
-    devtool: 'cheap-eval-source-map',
+    devtool: 'cheap-source-map',
 });
 
 ////////////////////////////////////////////////////////////////////////
