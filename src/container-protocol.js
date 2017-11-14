@@ -3,8 +3,8 @@
 // traversals, clones, etc.
 const types = new Map();
 
-export function __define__(type, abstract){
-    types.set(type, abstract);
+export function define(type, abstract){
+    types.set(type, Object.assign(types.get(type) || {}, abstract));
 };
 
 const abstract = v => {
@@ -15,10 +15,6 @@ const abstract = v => {
 
 types.set(undefined, {
     clone: i => i,
-    get: v => console.log('PRIMITIVE GET', v),
-    set: v => console.log('PRIMITIVE SET', v),
-    members: v => console.log('PRIMITIVE MEMBERS', v),
-    remove: v => console.log('PRIMITIVE REMOVE', v),
 });
 
 types.set(Object, {
@@ -26,7 +22,7 @@ types.set(Object, {
     get: (o, m) => o[m],
     set(o, m, v){ o[m] = v; },
     members: v => Object.keys(v),
-    remove(o, m){ delete o[m]; },
+    cut(o, m){ delete o[m]; },
 });
 
 types.set(Array, {
@@ -34,11 +30,23 @@ types.set(Array, {
     get: (a, i) => a[i],
     set(a, i, v){ a[i] = v; },
     members: v => Object.keys(v),
-    remove(a, k){ a.splice(k, 1); },
+    cut(a, k){ a.splice(k, 1); },
 });
 
-export const __members__ = d => abstract(d).members(d);
-export const __clone__ = d => abstract(d).clone(d);
-export const __get__ = (o, m) => abstract(o).get(o, m);
-export const __set__ = (o, m, v) => abstract(o).set(o, m, v);
-export const __remove__ = (o, m) => abstract(o).remove(o, m);
+types.set(Map, {
+    clone(m){
+        let r = new Map();
+        m.forEach((v, k) => r.set(k, v));
+        return r;
+    },
+    get: (m, k) => m.get(k),
+    set(m, k, v){ m.set(k, v); },
+    members: m => m.keys(),
+    cut(m, k){ m.delete(k); },
+});
+
+export const members = o => abstract(o).members(o);
+export const clone = o => abstract(o).clone(o);
+export const get = (o, m) => abstract(o).get(o, m);
+export const set = (o, m, v) => abstract(o).set(o, m, v);
+export const cut = (o, m) => abstract(o).cut(o, m);

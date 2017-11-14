@@ -1,25 +1,20 @@
 import ListZipper from './ListZipper'
-import { __get__, __set__, __clone__, __members__, __remove__ } from './abstraction'
+import { get, set, clone, members, cut } from './container-protocol'
+
+import * as cp from './container-protocol'
+export { cp as containerProtocol }
 
 // acquire a public reference to use for type detection
 const GeneratorFunction = (function*(){}).constructor;
 
-// TODO isolate this as a handler factory. Could have factory versions.
 // an independent state container for efficiently
 // catching errors and throwing them back up the
 // chain of lenses
-
-
-function submit(...args){
-    handler.next(args);
-}
-
-
 function HandlerContext(){
 
     const hg = function*(){
         let generator, target, result;
-        // while(true){ // TODO either enable error context or remove the handler? Could make this a debug mode?
+        // while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
         //     try {
         while(true){
             ([ generator, target, result ] = yield);
@@ -131,14 +126,14 @@ export let lens = (i, o) => function*(v){
 
 
 export let pluck = m => function*(v){ 
-    let mem = __get__(v, m);
+    let mem = get(v, m);
     let ret = yield mem;
     if(ret === undefined){ console.log('pluck result', ret); };
     if(ret === mem){
         return v;
     } else {
-        let fin = __clone__(v);
-        __set__(fin, m, ret);
+        let fin = clone(v);
+        set(fin, m, ret);
         return fin;
     }
 };
@@ -147,13 +142,13 @@ export let pluck = m => function*(v){
 export let inject = (member, fragment) => function*(target){ 
     let result = yield target;
     if(result === undefined){ console.log('inject result', result); };
-    if(__get__(result, member) === fragment){
+    if(get(result, member) === fragment){
         return result;
     } else {
        if(result === target){
-           result = __clone__(target);
+           result = clone(target);
        }
-       __set__(result, member, fragment);
+       set(result, member, fragment);
        return result;
     }
 };
@@ -162,13 +157,13 @@ export let inject = (member, fragment) => function*(target){
 export let remove = member => function*(target){ 
     let result = yield target;
     if(result === undefined){ console.log('remove result', result); };
-    if(__get__(result, member) === undefined){
+    if(get(result, member) === undefined){ // TODO: technically non-deterministic between undefined cases
         return result;
     } else {
         if(result === target){
-            result = __clone__(target);
+            result = clone(target);
         }
-        __remove__(result, member);
+        cut(result, member);
         return result;
     }
 };
@@ -177,14 +172,14 @@ export let remove = member => function*(target){
 export let each = () => function*(target){
     let acc = target;
     if(target === undefined){ console.log('each undefined', target);  };
-    for(let m of __members__(target)){
-        let result = __get__(target, m);
+    for(let m of members(target)){
+        let result = get(target, m);
         let fragment = yield result;
         if(result !== fragment){
             if(acc === target){
-                acc = __clone__(acc);
+                acc = clone(acc);
             }
-            __set__(acc, m, fragment);
+            set(acc, m, fragment);
         }
     };
     return acc;
@@ -202,7 +197,8 @@ export let handle = handler => function*(v){
 };
 
 
-// TODO this is hacked in as an afterthought which defeats the logging improvements
+// TODO: this is hacked in as an afterthought which defeats the logging improvements
+// tie into the core build somehow...
 export let chain = (...optics) => function*(v){
     return compile(optics).reduce((a, o) => view(o)(a), yield v);
 }
@@ -213,72 +209,6 @@ export let chain = (...optics) => function*(v){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// export let each = () => {
-//     return traversal((target, next) => {
-//         let r;
-//         if(target instanceof Array){
-//             r = target.reduce((a, e, i) => {
-//                 a[i] = next(e);
-//                 return a;
-//             }, []);
-//             return r.reduce((a, e, i) => {
-//                 return e === a[i] ? a : r;
-//             }, target);
-//         } else if(target instanceof Object){
-//             r = Object.keys(target).reduce((a, k) => {
-//                 a[k] = next(target[k]);
-//                 return a;
-//             }, {});
-//             return Object.keys(r).reduce((a, k) => {
-//                 return r[k] === a[k] ? a : r;
-//             }, target);
-//         } else {
-//             return target;
-//         }
-//     });
-// }
 
 // let join = pattern => {
 //     let index = -1;
@@ -315,12 +245,12 @@ export let chain = (...optics) => function*(v){
 //             return r[k] === a[k] ? a : r;
 //         }, target);
 //     });
-// }
+/
 
-// export function chain(...optics){
-//     return trusted((target, next) => {
-//         return next(compile(optics).reduce((acc, optic) => {
-//             return view(optic, acc);
-//         }, target));
-//     }, false);
-// }
+
+
+
+
+
+
+
