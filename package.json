@@ -1,6 +1,6 @@
 {
   "name": "vitrarius",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Functional optics implemented by a mad scientist to solve an engineering problem. ",
   "main": "dist/index.bundle.js",
   "scripts": {
