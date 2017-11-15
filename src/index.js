@@ -1,8 +1,6 @@
 import ListZipper from './ListZipper'
-import { get, set, clone, members, cut } from './container-protocol'
-
-import * as cp from './container-protocol'
-export { cp as containerProtocol }
+import Container, { get, set, clone, members, cut } from './container-protocol'
+export { Container }
 
 // acquire a public reference to use for type detection
 const GeneratorFunction = (function*(){}).constructor;
@@ -12,19 +10,19 @@ const GeneratorFunction = (function*(){}).constructor;
 // chain of lenses
 function HandlerContext(){
 
-    const hg = function*(){
+    const hg = function* vitrarius_context(){
         let generator, target, result;
-        // while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
-        //     try {
-        while(true){
-            ([ generator, target, result ] = yield);
-            Object.assign(result, generator.next(target));
+        while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
+            try {
+                while(true){
+                    ([ generator, target, result ] = yield);
+                    Object.assign(result, generator.next(target));
+                }
+            } catch(err) {
+                result.done = true;
+                result.value = err;
+            }
         }
-        //     } catch(err) {
-        //         done = true;
-        //         value = err;
-        //     }
-        // }
     };
 
     let sequence = new ListZipper();
@@ -43,7 +41,7 @@ function HandlerContext(){
 
 const context = new HandlerContext();
 
-export let view = optic => target => {
+export let view = optic => function view(target){
 
     let sequence = new ListZipper();
 
@@ -93,7 +91,7 @@ function compile(optics){
         } else if(l instanceof GeneratorFunction){
             return l;
         } else if(l instanceof Function){
-            return function*(t){ return yield l(t); }
+            return function* optic(t){ return yield l(t); }
         } else if(l[Symbol.iterator]){
             return l;
         } else {
@@ -120,12 +118,12 @@ export let compose = (...optics) => {
 };
 
 
-export let lens = (i, o) => function*(v){ 
+export let lens = (i, o) => function* lens(v){ 
     return o(yield i(v)); 
 };
 
 
-export let pluck = m => function*(v){ 
+export let pluck = m => function* pluck(v){ 
     let mem = get(v, m);
     let ret = yield mem;
     if(ret === undefined){ console.log('pluck result', ret); };
@@ -139,7 +137,7 @@ export let pluck = m => function*(v){
 };
 
 
-export let inject = (member, fragment) => function*(target){ 
+export let inject = (member, fragment) => function* inject(target){ 
     let result = yield target;
     if(result === undefined){ console.log('inject result', result); };
     if(get(result, member) === fragment){
@@ -154,7 +152,7 @@ export let inject = (member, fragment) => function*(target){
 };
 
 
-export let remove = member => function*(target){ 
+export let remove = member => function* remove(target){ 
     let result = yield target;
     if(result === undefined){ console.log('remove result', result); };
     if(get(result, member) === undefined){ // TODO: technically non-deterministic between undefined cases
@@ -169,7 +167,7 @@ export let remove = member => function*(target){
 };
 
 
-export let each = () => function*(target){
+export let each = () => function* each(target){
     let acc = target;
     if(target === undefined){ console.log('each undefined', target);  };
     for(let m of members(target)){
@@ -186,12 +184,12 @@ export let each = () => function*(target){
 };
 
 
-export let where = predicate => function*(v){
+export let where = predicate => function* where(v){
     return predicate(v) ? yield v : v;
 };
 
 
-export let handle = handler => function*(v){
+export let handle = handler => function* handle(v){
     let r = yield v;
     return r instanceof Error ? handler(r) : r;
 };
@@ -199,7 +197,7 @@ export let handle = handler => function*(v){
 
 // TODO: this is hacked in as an afterthought which defeats the logging improvements
 // tie into the core build somehow...
-export let chain = (...optics) => function*(v){
+export let chain = (...optics) => function* chain(v){
     return compile(optics).reduce((a, o) => view(o)(a), yield v);
 }
 
@@ -245,8 +243,7 @@ export let chain = (...optics) => function*(v){
 //             return r[k] === a[k] ? a : r;
 //         }, target);
 //     });
-/
-
+// };
 
 
 

@@ -17,7 +17,6 @@ tap.test('> optics tests', t => {
     t.deepEqual(view(compose(each(), inja5))({b:{}, c:{}}), {b:{a:5}, c:{a:5}}); // traversal / each
     t.deepEqual(view(chain(inja5, rema))(b3), b3); // chains
 
-
     // let ret = view(compose(parallelize({
     //     a: 'c', 
     //     b: 'd',
