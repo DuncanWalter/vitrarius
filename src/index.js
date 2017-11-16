@@ -41,7 +41,7 @@ function HandlerContext(){
 
 const context = new HandlerContext();
 
-export let view = optic => function view(target){
+export let view = (optic, target) => {
 
     let sequence = new ListZipper();
 
@@ -198,7 +198,7 @@ export let handle = handler => function* handle(v){
 // TODO: this is hacked in as an afterthought which defeats the logging improvements
 // tie into the core build somehow...
 export let chain = (...optics) => function* chain(v){
-    return compile(optics).reduce((a, o) => view(o)(a), yield v);
+    return compile(optics).reduce((a, o) => view(o, a), yield v);
 }
 
 

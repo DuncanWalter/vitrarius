@@ -10,12 +10,13 @@ let inja5 = inject('a', 5);
 let rema = remove('a');
 
 tap.test('> optics tests', t => {
-    t.deepEqual(view(inja5)(a3), a5); // injector
-    t.deepEqual(view(rema)(a3), {}); // remover
-    t.deepEqual(view(compose(rema, inja5))(b3), b3); // composition
-    t.deepEqual(view(compose(inja5, ['b', i => i, rema]))({b:a3}), {a: 5, b: {}}); // short-hands
-    t.deepEqual(view(compose(each(), inja5))({b:{}, c:{}}), {b:{a:5}, c:{a:5}}); // traversal / each
-    t.deepEqual(view(chain(inja5, rema))(b3), b3); // chains
+    
+    t.deepEqual(view(inja5, a3), a5); // injector
+    t.deepEqual(view(rema, a3), {}); // remover
+    t.deepEqual(view(compose(rema, inja5), b3), b3); // composition
+    t.deepEqual(view(compose(inja5, ['b', i => i, rema]), {b:a3}), {a: 5, b: {}}); // short-hands
+    t.deepEqual(view(compose(each(), inja5), {b:{}, c:{}}), {b:{a:5}, c:{a:5}}); // traversal // each
+    t.deepEqual(view(chain(inja5, rema), b3), b3); // chains
 
     // let ret = view(compose(parallelize({
     //     a: 'c', 
@@ -37,6 +38,7 @@ tap.test('> optics tests', t => {
     // console.log(view(compose('b', each(), v => 3), b0a));
 
     t.end();
+    
 });
 
 
