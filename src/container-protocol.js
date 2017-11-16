@@ -8,14 +8,21 @@ Symbol.container = Symbol('container');
 
 // TODO: define container behaviors for symbols, typed arrays, Sets, etc
 
-Number.prototype[Symbol.container] = String[Symbol.container] = { 
+
+const primitiveProtocol = { 
     clone: o => o, 
     create: () => null,
     has: () => false,
     get: () => undefined,
     cut: () => undefined,
-    set(){ throw new Error(`Primitive container ${o} cannot set members.`); }
+    set(){ throw new Error(`Primitive container ${o} cannot set members.`); },
+    members: () => [],
 };
+
+Number.prototype[Symbol.container] = primitiveProtocol;
+String.prototype[Symbol.container] = primitiveProtocol;
+Boolean.prototype[Symbol.container] = primitiveProtocol;
+Symbol.prototype[Symbol.container] = primitiveProtocol;
 
 Object.prototype[Symbol.container] = {
     clone: o => Object.assign({}, o),

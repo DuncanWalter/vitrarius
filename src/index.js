@@ -5,41 +5,9 @@ export { Container }
 // acquire a public reference to use for type detection
 const GeneratorFunction = (function*(){}).constructor;
 
-// an independent state container for efficiently
-// catching errors and throwing them back up the
-// chain of lenses
-function HandlerContext(){
 
-    const hg = function* vitrarius_context(){
-        let generator, target, result;
-        while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
-            try {
-                while(true){
-                    ([ generator, target, result ] = yield);
-                    Object.assign(result, generator.next(target));
-                }
-            } catch(err) {
-                result.done = true;
-                result.value = err;
-            }
-        }
-    };
 
-    let sequence = new ListZipper();
-    sequence.push(hg());
-
-    return {
-        submit(...args){
-            if(!sequence.head.value){ sequence.push(hg()); }
-            let freeHandler = sequence.head.value;
-            sequence.shift();
-            freeHandler.next(args) 
-            sequence.unShift();
-        },
-    };
-};
-
-const context = new HandlerContext();
+// const context = new HandlerContext();
 
 export let view = (optic, target) => {
 
@@ -62,7 +30,8 @@ export let view = (optic, target) => {
     }
 
     while(!result.done){
-        context.submit(focus.generator, result.value, result);
+        // context.submit(focus.generator, result.value, result);
+        Object.assign(result, focus.generator.next(result.value));
         if(!result.done){
             focus = sequence.shift();
             if(focus){
@@ -189,10 +158,7 @@ export let where = predicate => function* where(v){
 };
 
 
-export let handle = handler => function* handle(v){
-    let r = yield v;
-    return r instanceof Error ? handler(r) : r;
-};
+// 
 
 
 // TODO: this is hacked in as an afterthought which defeats the logging improvements
@@ -205,7 +171,10 @@ export let chain = (...optics) => function* chain(v){
 
 
 
-
+// export let handle = handler => function* handle(v){
+//     let r = yield v;
+//     return r instanceof Error ? handler(r) : r;
+// };
 
 
 // let join = pattern => {
@@ -251,3 +220,36 @@ export let chain = (...optics) => function* chain(v){
 
 
 
+// // an independent state container for efficiently
+// // catching errors and throwing them back up the
+// // chain of lenses
+// function HandlerContext(){
+
+//     const hg = function* vitrarius_context(){
+//         let generator, target, result;
+//         while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
+//             try {
+//                 while(true){
+//                     ([ generator, target, result ] = yield);
+//                     Object.assign(result, generator.next(target));
+//                 }
+//             } catch(err) {
+//                 result.done = true;
+//                 result.value = err;
+//             }
+//         }
+//     };
+
+//     let sequence = new ListZipper();
+//     sequence.push(hg());
+
+//     return {
+//         submit(...args){
+//             if(!sequence.head.value){ sequence.push(hg()); }
+//             let freeHandler = sequence.head.value;
+//             sequence.shift();
+//             freeHandler.next(args) 
+//             sequence.unShift();
+//         },
+//     };
+// };

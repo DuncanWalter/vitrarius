@@ -70,7 +70,7 @@ console.log(nestedPerson);
 /* > { person: { name: { first: 'Haskell', last: 'Curry' } } } */
 ```
 
-There are several built in optics. `pluck` peers into containers as demonstrated above. `inject` adds information to targets, while `remove` deletes information. `handle` safely deals with errors where nessessary. There are also `each` and `where` optics for use on collections and ill-formatted data respectively.
+There are several built in optics. `pluck` peers into containers as demonstrated above. `inject` adds information to targets, while `remove` deletes information. There are also `each` and `where` optics for use on collections and ill-formatted data respectively.
 
 The real power of vitrarius, however, comes from the ability to define custom optics using `composing` and `sequence` optics. Vitrarius also supports a range of short-hands for working with otherwise cumbersome optics.
 
