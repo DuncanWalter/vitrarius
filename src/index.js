@@ -9,7 +9,10 @@ const GeneratorFunction = (function*(){}).constructor;
 
 // const context = new HandlerContext();
 
-export let view = (optic, target) => {
+export let view = (...args) => {
+
+    let target = args.pop();
+    let optic = args.length === 1 ? args[0] : compose(args);
 
     let sequence = new ListZipper();
 

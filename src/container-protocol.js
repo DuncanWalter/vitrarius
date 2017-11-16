@@ -38,7 +38,7 @@ Array.prototype[Symbol.container] = {
     set(a, i, v){ a[i] = v; },
     members: v => Object.keys(v),
     cut(a, k){ a.splice(k, 1); },
-    has: (a, i) => i < a.length,
+    has: (a, i) => typeof i === 'number' && i < a.length,
 };
 
 Map.prototype[Symbol.container] = {
