@@ -1,5 +1,5 @@
-import ListZipper from './ListZipper'
-import Container, { get, set, clone, members, cut } from './container-protocol'
+import IterableZipper from './IterableZipper'
+import Container, { get, set, clone, has, members, cut, create } from './container-protocol'
 export { Container }
 
 // acquire a public reference to use for type detection
@@ -9,61 +9,50 @@ const GeneratorFunction = (function*(){}).constructor;
 
 // const context = new HandlerContext();
 
+// TODO: un-recurse sequencing 
 export let view = (...args) => {
 
     let target = args.pop();
-    let optic = args.length === 1 ? args[0] : compose(args);
+    let sequence = new IterableZipper(compose(args));
 
-    let sequence = new ListZipper();
+    let focus = sequence.proxy();
+    focus.gen = focus.value(target);
 
-    if(optic instanceof GeneratorFunction){
-        sequence.add({ optic, generator: undefined });
-    } else {
-        for(let o of optic){
-            sequence.add({ optic: o, generator: undefined });
-        }
-    }
+    
+    let value = target;
+    let done = false;
+    
 
-    let focus = sequence.head.value;
-    focus.generator = focus.optic(target);
-
-    let result = {
-        value: target,
-        done: false,
-    }
-
-    while(!result.done){
-        // context.submit(focus.generator, result.value, result);
-        Object.assign(result, focus.generator.next(result.value));
-        if(!result.done){
-            focus = sequence.shift();
-            if(focus){
-                focus.generator = focus.optic(result.value);
-            } else {
-                focus = sequence.unShift();
+    while(!done){
+        ({ value, done } = focus.gen.next(value));
+        if(!done){
+            if(sequence.hasNext()){
+                sequence.next();
+                focus.gen = focus.value(value);
             }
         } else {
-            focus.generator = undefined;
-            focus = sequence.unShift();
-            result.done = focus === undefined;
-        }
+            focus.gen = undefined;
+            sequence.back();
+            done = sequence.tail == undefined;
+        }    
     }
     
-    return result.value;
+    return value;
 };
 
 // allows for the use of short-hands when constructing
 // complex optics using compose (and eventually sequence)
+// TODO: add objects for splitting optics by key
 function compile(optics){
     return optics.map(l => {
-        if(typeof l === 'string' || typeof l === 'number'){
+        if(typeof l != 'function' && typeof l != 'object'){
             return pluck(l);
         } else if(l instanceof Array){
             return compose(...l);
         } else if(l instanceof GeneratorFunction){
             return l;
         } else if(l instanceof Function){
-            return function* optic(t){ return yield l(t); }
+            return function* optic(t, c){ return yield l(t, c); }
         } else if(l[Symbol.iterator]){
             return l;
         } else {
@@ -90,15 +79,14 @@ export let compose = (...optics) => {
 };
 
 
-export let lens = (i, o) => function* lens(v){ 
-    return o(yield i(v)); 
+export let lens = (i, o) => function* lens(v, c){ 
+    return o(v, yield i(v, c), c); 
 };
 
-
+// TODO: create a path proxy alternative
 export let pluck = m => function* pluck(v){ 
     let mem = get(v, m);
     let ret = yield mem;
-    if(ret === undefined){ console.log('pluck result', ret); };
     if(ret === mem){
         return v;
     } else {
@@ -111,7 +99,6 @@ export let pluck = m => function* pluck(v){
 
 export let inject = (member, fragment) => function* inject(target){ 
     let result = yield target;
-    if(result === undefined){ console.log('inject result', result); };
     if(get(result, member) === fragment){
         return result;
     } else {
@@ -126,8 +113,7 @@ export let inject = (member, fragment) => function* inject(target){
 
 export let remove = member => function* remove(target){ 
     let result = yield target;
-    if(result === undefined){ console.log('remove result', result); };
-    if(get(result, member) === undefined){ // TODO: technically non-deterministic between undefined cases
+    if(!has(result, member)){
         return result;
     } else {
         if(result === target){
@@ -138,10 +124,9 @@ export let remove = member => function* remove(target){
     }
 };
 
-
+// TODO: uncurry
 export let each = () => function* each(target){
     let acc = target;
-    if(target === undefined){ console.log('each undefined', target);  };
     for(let m of members(target)){
         let result = get(target, m);
         let fragment = yield result;
@@ -157,7 +142,7 @@ export let each = () => function* each(target){
 
 
 export let where = predicate => function* where(v){
-    return predicate(v) ? yield v : v;
+    return predicate(v, this) ? yield v : v;
 };
 
 
@@ -171,51 +156,95 @@ export let chain = (...optics) => function* chain(v){
 }
 
 
+export let cycle = (...optics) => { 
+    return { 
+        [Symbol.iterator]: function*(){
+            while(true){
+                yield* optics;
+            }
+        }, 
+    }
+}
+
+
+// TODO: phantom containers using proxies to make automatic immutables
+const __internal__ = Symbol('internal');
+export let phantom = function* phantom(target){
+    let context;
+    yield (context = new (function Phantom(trg){
+        let edits = clone(trg);
+        return new Proxy(trg, {
+            get(__, mem){
+                if(mem === __internal__){  
+                    let keys = members(edits);
+                    return !keys.length ? trg : keys.reduce((a, k) => {
+                        let c = get(edits, k);
+                        set(a, k, c[__internal__] || c);
+                        return a;
+                    }, clone(trg));
+                }
+                return has(edits, mem) ? get(edits, mem) : new Phantom(get(target, mem));
+            },
+            set(__, mem, val){
+                if(val !== get(target, mem)){
+                    set(edits, mem, val);
+                }
+                return true;
+            },
+            apply(__, self, ...args){
+                return target.call(self, ...args);
+            },
+        });
+    })(target));
+    return context[__internal__];
+};
 
 
 
+
+
+
+// TODO: consider adding again by throwing exceptions into optics
 // export let handle = handler => function* handle(v){
 //     let r = yield v;
 //     return r instanceof Error ? handler(r) : r;
 // };
 
 
-// let join = pattern => {
-//     let index = -1;
-//     let input, output, result = {};
-//     let keys = Object.keys(pattern);
-//     return trusted((target, next) => {
 
-//         if(index < 0){ 
-//             input = target;
-//             index += 1;
-//         } else if(index < keys.length){
-//             input[keys[index++]] = target;
-//         }
+// --1---0---1---2---3-- ii
+// ----o---o---o---o---- optics
 
-//         if(index < keys.length){
-//             result[keys[index]] = next(input[keys[index]]);
-//         } else {
-//             output = next(input);
-//         }
+let join = keys => {
+    // 
+    let decending, ascending, global, ii = -1;
 
-//         // console.log(output);
+    return function* join(target){
 
-//         return --index < 0 ? result : output[keys[index]];
+        if(ii < 0){ 
+            global = target;
+            decending = create(target);
+            ascending = create(target);
+        } else {
+            set(decending, keys[ii], target);
+        }
 
-//     });
-// }
+        if(++ii < keys.length){
+            set(ascending, keys[ii], yield get(global, keys[ii]));
+        } else {
+            global = yield decending;
+        }
 
-// export let parallelize = pattern => {
-//     return new Optic((target, itr) => {
-//         let keys = Object.keys(pattern);
-//         let joiner = join(pattern);
-//         let r = compose(joiner, keys.map(k => [pattern[k], joiner])).exec(target, itr);
-//         return Object.keys(r).concat(keys).reduce((a, k) => {
-//             return r[k] === a[k] ? a : r;
-//         }, target);
-//     });
-// };
+        return (ii-- == 0) ? ascending : get(global, keys[ii]);
+
+    };
+}
+
+export let parallelize = pattern => {
+    let keys = members(pattern);
+    let joiner = join(keys);
+    return compose(joiner, ...keys.map(k => [get(pattern, k), joiner]));
+};
 
 
 
@@ -230,7 +259,7 @@ export let chain = (...optics) => function* chain(v){
 
 //     const hg = function* vitrarius_context(){
 //         let generator, target, result;
-//         while(true){ // TODO: either enable error context or remove the handler? Could make this a debug mode?
+//         while(true){
 //             try {
 //                 while(true){
 //                     ([ generator, target, result ] = yield);
