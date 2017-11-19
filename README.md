@@ -2,7 +2,7 @@
 
 > **vitrarius:** a glassblower; one who works with glass
 
-Vitrarius is a raw optics library for modern JavaScript. In the context of Redux, optics are useful as reducers. In general, optics are a utility that facilitates manipulating and interpretating nested data. They hail from functional languages, so they are declarative and respect immutabilty. There are several formal implementations of optics in JavaScript already; in fact, if you are interested in optics from a pure perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). By comparison, Vitrarius is uncouth; it emphasizes flexibility and performance over purity. Its name was chosen to reflect the library's constructive approach to optics. 
+Vitrarius is a raw optics library for modern JavaScript. In the context of Redux, optics are useful as reducers. In general, optics are a utility to facilitate manipulating and interpretating nested data. They hail strict functional languages, so they are declarative and respect immutabilty. There are several formal implementations of optics in JavaScript already; in fact, if you are interested in optics from a pure perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). By comparison, Vitrarius is mathematically uncouth; it emphasizes flexibility and performance over purity. I chose the name Vitrarius to reflect the library's constructive approach to optics, and I try to live up to that meaning. Vitrarius can handle 'infinite' optics, build custom traversals, and will never pollute the call stack.
 
 Out of the box, the optics of Vitrarius can handle Objects, Arrays, Maps, and many primitive values. To operate on other types (like those of ImmutableJS), vitrarius makes use of a container protocol. This protocol is similar to the iterator protocol, and allows vitrarius to gracefully handle any type of data. 
 
@@ -15,7 +15,7 @@ While its API is minimal, Vitrarius bears the usual conceptual weight of optics;
 ### **Fundamental Usage**
 --------------------
 
-Vitrarius is a single module exporting several pure functions. It is designed for use with es2015 language features, so examples will use es2015 syntax.
+Vitrarius is a single module exporting several pure functions.
 
 ``` javascript
 import { view, pluck, inject, compose } from 'vitrarius'
@@ -50,7 +50,7 @@ console.log(object);
 console.log(person === object);
 /* > false */
 
-// Unchanged objects are preserved
+// unchanged objects are preserved
 console.log(person === view(exampleOptic, person));
 /* > true */
 ```
@@ -72,15 +72,18 @@ console.log(nestedPerson);
 
 There are several built in optics. `pluck` peers into containers as demonstrated above. `inject` adds information to targets, while `remove` deletes information. There are also `each` and `where` optics for use on collections and ill-formatted data respectively.
 
-The real power of vitrarius, however, comes from the ability to define custom optics using `composing` and `sequence` optics. Vitrarius also supports a range of short-hands for working with otherwise cumbersome optics.
+The constructive power of Vitrarius comes from the ability to define custom optics using the `compose` and `chain` optics. Vitrarius also supports a range of short-hands for working with otherwise cumbersome optics.
 
 ``` javascript
-// strings, numbers, functions, and arrays can be used as optics
+// most values in JavaScript can be interpreted as optics
 let printName = compose('person', 'name', 'first', v => console.log(v));
 
 view(printName, nestedPerson);
 /* > 'Haskell' */
 ```
+
+Advanced features include the infinite `cycle`, convenient `parallelize`, and magic `phantom` optics.
+
 
 Examples and formal documentation coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette).
 

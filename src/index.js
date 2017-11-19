@@ -37,6 +37,7 @@ export let view = (...args) => {
         }    
     }
     
+    sequence.return();
     return value;
 };
 
@@ -52,9 +53,11 @@ function compile(optics){
         } else if(l instanceof GeneratorFunction){
             return l;
         } else if(l instanceof Function){
-            return function* optic(t, c){ return yield l(t, c); }
+            return function* optic(t){ return yield l(t); }
         } else if(l[Symbol.iterator]){
             return l;
+        } else if(l[Symbol.container]){
+            return parallelize(l);
         } else {
             throw Error('Invalid optic type instance ' + l);
         }
@@ -79,11 +82,11 @@ export let compose = (...optics) => {
 };
 
 
-export let lens = (i, o) => function* lens(v, c){ 
-    return o(v, yield i(v, c), c); 
+export let lens = (i, o) => function* lens(v){ 
+    return o(v, yield i(v)); 
 };
 
-// TODO: create a path proxy alternative
+// TODO: create a path proxy alternative?
 export let pluck = m => function* pluck(v){ 
     let mem = get(v, m);
     let ret = yield mem;
@@ -110,7 +113,6 @@ export let inject = (member, fragment) => function* inject(target){
     }
 };
 
-
 export let remove = member => function* remove(target){ 
     let result = yield target;
     if(!has(result, member)){
@@ -124,8 +126,7 @@ export let remove = member => function* remove(target){
     }
 };
 
-// TODO: uncurry
-export let each = () => function* each(target){
+export let each = function* each(target){
     let acc = target;
     for(let m of members(target)){
         let result = get(target, m);
@@ -144,9 +145,6 @@ export let each = () => function* each(target){
 export let where = predicate => function* where(v){
     return predicate(v, this) ? yield v : v;
 };
-
-
-// 
 
 
 // TODO: this is hacked in as an afterthought which defeats the logging improvements
@@ -194,6 +192,10 @@ export let phantom = function* phantom(target){
             apply(__, self, ...args){
                 return target.call(self, ...args);
             },
+            delete(__){
+                // TODO: FIX THIS!!... not sure how though...
+                throw new Error('vitrarius Phantom instances cannot delete properties');
+            }
         });
     })(target));
     return context[__internal__];

@@ -44,4 +44,8 @@ export default class IteratorZipper {
             apply: (trg, __, args) => trg(...args),
         });
     }
+    return(){
+        this.iter.return();
+        this.iter = undefined;
+    }
 };
