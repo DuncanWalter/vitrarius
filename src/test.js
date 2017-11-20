@@ -34,7 +34,7 @@ tap.test('> optics tests', t => {
     t.deepEqual(ret, {a:{c: 2}, b:{d: 3}});
 
     t.true(view(compose('b', 0, v => 3), b0a).b instanceof Array);
-    t.true(view(compose('b', each, v => 3), b0a).b instanceof Array);
+    t.true(view[compose('b', each, v => 3)](b0a).b instanceof Array);
 
     t.true(view(phantom, v => { v.a = 3; v.b = 2; }, b3) != b3);
     t.deepEqual(view(phantom, v => { v.a = 3; v.b = 2; }, b3), {a:3,b:2});

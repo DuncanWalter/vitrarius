@@ -10,7 +10,7 @@ const GeneratorFunction = (function*(){}).constructor;
 // const context = new HandlerContext();
 
 // TODO: un-recurse sequencing 
-export let view = (...args) => {
+export let view = new Proxy((...args) => {
 
     let target = args.pop();
     let sequence = new IterableZipper(compose(args));
@@ -39,7 +39,11 @@ export let view = (...args) => {
     
     sequence.return();
     return value;
-};
+}, {
+    get(trg, mem){
+        return (...args) => trg(mem, ...args);
+    }
+});
 
 // allows for the use of short-hands when constructing
 // complex optics using compose (and eventually sequence)

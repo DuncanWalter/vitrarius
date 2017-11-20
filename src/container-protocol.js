@@ -8,6 +8,11 @@ Symbol.container = Symbol('container');
 
 // TODO: define container behaviors for symbols, typed arrays, Sets, etc
 
+// TODO: containers cannot contain undefined, but call contain null. 
+
+// need members, get, set, (cut, has, create, clone)
+
+// is null an empty container? Yes. Yes it is.
 
 const primitiveProtocol = { 
     clone: o => o, 
@@ -23,12 +28,13 @@ Number.prototype[Symbol.container] = primitiveProtocol;
 String.prototype[Symbol.container] = primitiveProtocol;
 Boolean.prototype[Symbol.container] = primitiveProtocol;
 Symbol.prototype[Symbol.container] = primitiveProtocol;
+Function.prototype[Symbol.container] = primitiveProtocol;
 
 Object.prototype[Symbol.container] = {
     clone: o => Object.assign({}, o),
     get: (o, m) => o[m],
     set(o, m, v){ o[m] = v; },
-    members: v => Object.keys(v),
+    members: v => Reflect.ownKeys(v),
     cut(o, m){ delete o[m]; },
     has: (o, m) => o.hasOwnProperty(m),
 };
@@ -38,8 +44,8 @@ Array.prototype[Symbol.container] = {
     set(a, i, v){ a[i] = v; },
     members: v => Object.keys(v),
     cut(a, k){ a.splice(k, 1); },
-    has: (a, i) => typeof i === 'number' && i < a.length,
 };
+Int8Array.prototype[Symbol.container] = Array.prototype[Symbol.container];
 
 Map.prototype[Symbol.container] = {
     get: (m, k) => m.get(k),
@@ -49,28 +55,64 @@ Map.prototype[Symbol.container] = {
     has: (m, k) => m.has(k),
 };
 
-export const members = o => o[Symbol.container].members(o);
+// underivable. return an array of member keys.
+export const members = o => o !== null ? o[Symbol.container].members(o) : [];
 
-export const get = (o, m) => o[Symbol.container].get(o, m);
-export const set = (o, m, v) => o[Symbol.container].set(o, m, v);
-export const cut = (o, m) => o[Symbol.container].cut(o, m);
-export const has = (o, m) => o[Symbol.container].has(o, m);
+// underivable. return either the value at the given member key or undefined.
+export const get = (o, m) => o !== null ? o[Symbol.container].get(o, m) : undefined;
 
-// derivable
+// underivable. fall back to cut if setting undefined.
+export const set = (o, m, v) => {
+    if(o !== null){
+        if(v ===  undefined && o[Symbol.container].cut){
+            o[Symbol.container].cut(o, m);
+        } else {
+            o[Symbol.container].set(o, m, v);
+        }
+    }
+}
+
+// if undefined, derive from set undefined
+export const cut = (o, m) => {
+    if(o !== null){
+        if(o[Symbol.container].cut){
+            o[Symbol.container].cut(o, m);
+        } else {
+            o[Symbol.container].set(o, m, undefined);
+        }
+    }
+}
+
+// derivable from get. return boolean.
+export const has = (o, m) => {
+    if(o !== null){
+        if(o[Symbol.container].has){
+            return o[Symbol.container].has(o, m);
+        } else {
+            return o[Symbol.container].get(o, m) !== undefined;
+        }
+    } else {
+        return false;
+    }
+};
+
+// derivable (probably)
 export const create = o => {
-    let c = o[Symbol.container].create;
-    if(c){
-        return c(o);
+    if(o === null){ 
+        return undefined; 
+    } else if(o[Symbol.container].create){
+        return o[Symbol.container].create(o);
     } else {
         return new o.constructor();
     } 
 }
 
-// derivable from get and set
+// derivable from members, get, and set
 export const clone = o => {
-    let c = o[Symbol.container].clone;
-    if(c){
-        return c(o);
+    if(o === null){ 
+        return undefined; 
+    } else if(o[Symbol.container].clone){
+        return o[Symbol.container].clone(o);
     } else {
         let r = create(o);
         members(o).forEach(m => set(r, m, get(o, m)));
