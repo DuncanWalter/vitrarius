@@ -2,13 +2,11 @@
 
 > **vitrarius:** a glassblower; one who works with glass
 
-Vitrarius is a raw optics library for modern JavaScript. In the context of Redux, optics are useful as reducers. In general, optics are a utility to facilitate manipulating and interpretating nested data. They hail strict functional languages, so they are declarative and respect immutabilty. There are several formal implementations of optics in JavaScript already; in fact, if you are interested in optics from a pure perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). By comparison, Vitrarius is mathematically uncouth; it emphasizes flexibility and performance over purity. I chose the name Vitrarius to reflect the library's constructive approach to optics, and I try to live up to that meaning. Vitrarius can handle 'infinite' optics, build custom traversals, and will never pollute the call stack.
+Vitrarius is a raw optics library for modern JavaScript. In the context of Redux, optics are useful as reducers. In general, optics are a utility to facilitate manipulating and interpretating nested data. They hail from strict, functional languages, so optics are declarative and respect immutability. There are several formal implementations of optics in JavaScript already; in fact, if you are interested in optics from a pure perspective, I recommend checking them out [here](https://www.npmjs.com/package/partial.lenses). By comparison, Vitrarius is mathematically uncouth; it emphasizes flexibility, performance, and traceability over purity.
 
-Out of the box, the optics of Vitrarius can handle Objects, Arrays, Maps, and many primitive values. To operate on other types (like those of ImmutableJS), vitrarius makes use of a container protocol. This protocol is similar to the iterator protocol, and allows vitrarius to gracefully handle any type of data. 
+Out of the box, the optics of Vitrarius can handle Objects, Arrays, Maps, and primitive values. To operate on other types (like those of ImmutableJS), vitrarius makes use of a container protocol. This protocol is similar to the iterator protocol, and allows vitrarius to gracefully handle any type of data. Documentation for the container protocol is coming soon.
 
-Vitrarius is __not__ intended to _replace_ more formal implementations, but rather to provide an idiomatic JavaScript alternative. 
-
-While its API is minimal, Vitrarius bears the usual conceptual weight of optics; as consequence, it takes some effort to master.
+Vitrarius is __not__ intended to _replace_ more formal implementations, but rather to provide an idiomatic JavaScript alternative.
 
 
 
@@ -26,13 +24,14 @@ Optics are executed using the `view` function once created.
 ``` javascript
 let object = {};
 
-// create an optic
+// create an optic to add
+// a name property to targets
 let exampleOptic = inject('name', {
     first: 'Haskell',
     last: 'Curry',
 });
 
-// execute the optic
+// execute the optic using view
 let person = view(exampleOptic, object);
 
 console.log(person);
@@ -47,8 +46,8 @@ console.log(object);
 /* > { } */
 
 // ...so shallow comparisons are safe!
-console.log(person === object);
-/* > false */
+console.log(person !== object);
+/* > true */
 
 // unchanged objects are preserved
 console.log(person === view(exampleOptic, person));
@@ -72,18 +71,36 @@ console.log(nestedPerson);
 
 There are several built in optics. `pluck` peers into containers as demonstrated above. `inject` adds information to targets, while `remove` deletes information. There are also `each` and `where` optics for use on collections and ill-formatted data respectively.
 
-The constructive power of Vitrarius comes from the ability to define custom optics using the `compose` and `chain` optics. Vitrarius also supports a range of short-hands for working with otherwise cumbersome optics.
+The constructive power of Vitrarius comes from the ability to define custom optics using the `compose`, `chain`, and `cycle` optics. Vitrarius also supports a range of short-hands for working with otherwise cumbersome optics.
 
 ``` javascript
 // most values in JavaScript can be interpreted as optics
-let printName = compose('person', 'name', 'first', v => console.log(v));
+let printName = compose('person', 'name', 'first', console.log);
 
 view(printName, nestedPerson);
 /* > 'Haskell' */
 ```
 
-Advanced features include the infinite `cycle`, convenient `parallelize`, and magic `phantom` optics.
+Advanced features include the infinite `cycle`, convenient `parallel`, and magic `phantom` optics.
+
+``` javascript
+// An optic which recursively freezes
+// a value (without polluting the call stack).
+// Deep clones and traversals can be 
+// similarly defined.
+let deepFreeze = cycle(Object.freeze, each);
+
+// Take a function which accepts a value
+// and performs operations on it- return 
+// an optic which performs that function 
+// immutably using a proxy. 
+let asImmutable = fun => compose(phantom, fun); 
+```
 
 
-Examples and formal documentation coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette).
+
+
+
+
+Examples and formal documentation coming soon! For now, refer to the [knarly use case vitrarius was built for](https://www.npmjs.com/package/silhouette-core).
 

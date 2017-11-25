@@ -145,18 +145,15 @@ export let each = function* each(target){
     return acc;
 };
 
-
 export let where = predicate => function* where(v){
     return predicate(v, this) ? yield v : v;
 };
-
 
 // TODO: this is hacked in as an afterthought which defeats the logging improvements
 // tie into the core build somehow...
 export let chain = (...optics) => function* chain(v){
     return compile(optics).reduce((a, o) => view(o, a), yield v);
-}
-
+};
 
 export let cycle = (...optics) => { 
     return { 
@@ -166,11 +163,12 @@ export let cycle = (...optics) => {
             }
         }, 
     }
-}
+};
 
-
-// TODO: phantom containers using proxies to make automatic immutables
+// TODO: phantoms need to detect and not phantom
+// already phantom items.
 const __internal__ = Symbol('internal');
+const del = Symbol('delete');
 export let phantom = function* phantom(target){
     let context;
     yield (context = new (function Phantom(trg){
@@ -189,7 +187,7 @@ export let phantom = function* phantom(target){
             },
             set(__, mem, val){
                 if(val !== get(target, mem)){
-                    set(edits, mem, val);
+                    set(edits, mem, val[__internal__] || val);
                 }
                 return true;
             },
@@ -198,6 +196,7 @@ export let phantom = function* phantom(target){
             },
             delete(__){
                 // TODO: FIX THIS!!... not sure how though...
+                // symbol for undefined
                 throw new Error('vitrarius Phantom instances cannot delete properties');
             }
         });
@@ -244,9 +243,9 @@ let join = keys => {
         return (ii-- == 0) ? ascending : get(global, keys[ii]);
 
     };
-}
+};
 
-export let parallelize = pattern => {
+export let parallel = pattern => {
     let keys = members(pattern);
     let joiner = join(keys);
     return compose(joiner, ...keys.map(k => [get(pattern, k), joiner]));
