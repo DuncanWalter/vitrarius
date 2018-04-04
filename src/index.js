@@ -251,6 +251,7 @@ export let parallel = pattern => {
     return compose(joiner, ...keys.map(k => [get(pattern, k), joiner]));
 };
 
+export let reducer = lensProducer => (state, data) => view(...lensProducer(data, state), state);
 
 
 
@@ -268,7 +269,7 @@ export let parallel = pattern => {
 //             try {
 //                 while(true){
 //                     ([ generator, target, result ] = yield);
-//                     Object.assign(result, generator.next(target));
+                    Object.assign(result, generator.next(target));
 //                 }
 //             } catch(err) {
 //                 result.done = true;
