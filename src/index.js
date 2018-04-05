@@ -269,7 +269,7 @@ export let reducer = lensProducer => (state, data) => view(...lensProducer(data,
 //             try {
 //                 while(true){
 //                     ([ generator, target, result ] = yield);
-                    Object.assign(result, generator.next(target));
+                    // Object.assign(result, generator.next(target));
 //                 }
 //             } catch(err) {
 //                 result.done = true;
